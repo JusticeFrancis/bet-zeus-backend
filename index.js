@@ -12,7 +12,6 @@ app.use(express.json());
 
 // ✅ routes
 const router = require("./routes");
-const { runAutoAlerts } = require("./controllers/BetController");
 app.use(router);
 
 // ✅ test route
@@ -27,8 +26,3 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-
-
-cron.schedule("*/5 * * * *", async () => {
-  await runAutoAlerts();
-});

@@ -1,5 +1,4 @@
 const axios = require("axios");
-const { bot } = require("../bot");
 const BASE_URL = "https://api.the-odds-api.com/v4";
 
 
@@ -371,10 +370,11 @@ async function analyzeMatchOdds(
 }
 
 async function test(req, res) {
+  console.log('hi')
   const result_laliga = await analyzeMatchOdds("soccer_spain_la_liga", "es.1");
   const result_pl = await analyzeMatchOdds("soccer_epl", "en.1");
 
-  console.log(result);
+  console.log(result_pl);
 
   for (const m of result_laliga.matches) {
     // if (!m.alert) continue;
@@ -404,7 +404,7 @@ async function test(req, res) {
     High probability of at least two goals before FT.
     `;
 
-    await sendTelegramAlert(message);
+   await sendTelegramAlert(message);
   }
   for (const m of result_pl.matches) {
     // if (!m.alert) continue;
@@ -453,167 +453,6 @@ async function sendTelegramAlert(message) {
   });
 }
 
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-
-  bot.sendMessage(chatId, "🟢 *Bet Bot Activated*\n\nChoose an option below:", {
-    parse_mode: "Markdown",
-    reply_markup: {
-      keyboard: [
-        [{ text: "📊 Check matches today" }],
-        [{ text: "👨‍💻 Contact developer" }],
-      ],
-      resize_keyboard: true,
-      one_time_keyboard: false,
-    },
-  });
-});
-
-// track user state for follow-up
-const userState = new Map();
-
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-
-  bot.sendMessage(chatId, "🟢 *Bet Bot Activated*\n\nSelect an option:", {
-    parse_mode: "Markdown",
-    reply_markup: {
-      keyboard: [
-        [{ text: "📊 Check matches today" }],
-        [{ text: "👨‍💻 Contact developer" }],
-      ],
-      resize_keyboard: true,
-    },
-  });
-});
-
-bot.on("message", async (msg) => {
-  const chatId = msg.chat.id;
-  const text = msg.text;
-
-  if (!text || text.startsWith("/")) return; // ignore commands
-
-  const state = userState.get(chatId);
-
-  // Step 1: User clicks "Check matches today"
-  if (text === "📊 Check matches today") {
-    userState.set(chatId, "SELECT_LEAGUE");
-
-    return bot.sendMessage(chatId, "Please select the league:", {
-      reply_markup: {
-        keyboard: [
-          [{ text: "🇪🇸 Spanish League" }],
-          [{ text: "🏴 English League" }],
-        ],
-        resize_keyboard: true,
-        one_time_keyboard: true,
-      },
-    });
-  }
-
-  // Step 2: User selects a league
-  if (state === "SELECT_LEAGUE") {
-    let sportKey, leagueCode;
-
-    if (text === "🇪🇸 Spanish League") {
-      console.log("Spanish league selected");
-      sportKey = "soccer_spain_la_liga";
-      leagueCode = "es.1";
-    } else if (text === "🏴 English League") {
-      sportKey = "soccer_epl";
-      leagueCode = "en.1";
-    } else {
-      return bot.sendMessage(chatId, "❌ Please pick a valid league.");
-    }
-
-    // reset user state
-    userState.delete(chatId);
-
-    bot.sendMessage(chatId, `⏳ Fetching matches for ${text}...`);
-
-    // fetch matches using your analyzeMatchOdds function
-    const result = await analyzeMatchOdds(sportKey, leagueCode);
-
-    console.log({ result });
-
-    if (!result.matches.length) {
-      return bot.sendMessage(chatId, "❌ No matches today");
-    }
-
-    // Send each match with detailed info
-    for (const m of result.matches) {
-      // Determine status and insight
-      // Determine status and insight
-      const statusText = m.ismatch_live
-        ? `⏱ Minute: <b>${m.matchMinute}'</b>\n⚽ Score: <b>${m.home_team_score}-${m.away_team_score}</b>`
-        : `🕒 Starts at: <b>${new Date(m.commence_time).toLocaleTimeString(
-            "en-GB",
-            {
-              hour: "2-digit",
-              minute: "2-digit",
-              timeZone: "UTC",
-            }
-          )} UTC</b>`;
-
-      const insight = m.ismatch_live
-        ? "High probability of at least two goals before FT."
-        : "Match has not started yet. Stay tuned for live alerts.";
-
-      // Format last 5 matches
-      const last5MatchesText = m.h2h_last_5_games.matches
-        .map(
-          (match) =>
-            `• ${match.date}: ${match.team1} ${match.score} ${
-              match.team2
-            } | Over 1.5: ${match.over2goals ? "✅ YES" : "❌ NO"}`
-        )
-        .join("\n");
-
-      const message = `
-<b>🚨 BET ALERT</b>
-
-<b>${m.match}</b>
-${statusText}
-
-<b>📊 Head-to-Head (Last 5)</b>
-• Played: ${m.h2h_last_5_games.played}
-• ${m.home_team} Wins: ${m.h2h_last_5_games.teamAWins}
-• ${m.away_team} Wins: ${m.h2h_last_5_games.teamBWins}
-• Draws: ${m.h2h_last_5_games.draws}
-• Total Goals: ${m.h2h_last_5_games.totalGoals}
-• Over 1.5 Goals Overall: ${m.h2h_last_5_games.over2goals ? "✅ YES" : "❌ NO"}
-
-<b>📄 Recent Last 5 Matches</b>
-${last5MatchesText}
-
-<b>💰 Market</b>
-• Over 0.5 Goals Odds: <b>${m.goals_odd ?? "N/A"}</b>
-
-<b>📡 Status</b>
-• Live: ${m.ismatch_live ? "✅ Yes" : "❌ No"}
-
-<b>⚠️ Insight</b>
-${insight}
-`;
-
-      bot.sendMessage(chatId, message, { parse_mode: "HTML" });
-    }
-
-    return;
-  }
-
-  // Step 3: Contact developer
-  if (text === "👨‍💻 Contact developer") {
-    return bot.sendMessage(
-      chatId,
-      `<b>👨‍💻 Developer</b>\nTelegram: @techhrabb\nEmail: cjfrancisfx@gmail.com`,
-      { parse_mode: "HTML" }
-    );
-  }
-
-  // Step 4: fallback
-  return bot.sendMessage(chatId, "❓ Please select an option from the menu.");
-});
 
 
 
@@ -625,46 +464,4 @@ ${insight}
 
 
 
-
-async function runAutoAlerts() {
-  try {
-    console.log("⏰ Cron job running...");
-
-    const result_laliga = await analyzeMatchOdds("soccer_spain_la_liga", "es.1");
-    const result_pl = await analyzeMatchOdds("soccer_epl", "en.1");
-
-    const allMatches = [
-      ...(result_laliga.matches || []),
-      ...(result_pl.matches || [])
-    ];
-
-    for (const m of allMatches) {
-      if (!m.alert) continue; // IMPORTANT: avoid spam
-
-      const message = `
-<b>🚨 LIVE BET ALERT</b>
-
-<b>${m.match}</b>
-⏱ Minute: <b>${m.matchMinute}'</b>
-⚽ Score: <b>${m.home_team_score}-${m.away_team_score}</b>
-
-<b>📊 Head-to-Head (Last 5)</b>
-• Played: ${m.h2h_last_5_games.played}
-• Over 1.5 Goals: ${m.h2h_last_5_games.over2goals ? "✅ YES" : "❌ NO"}
-
-<b>⚠️ Insight</b>
-High probability of at least two goals before FT.
-`;
-
-      await sendTelegramAlert(message);
-    }
-  } catch (err) {
-    console.error("Cron error:", err.message);
-  }
-}
-
-
-
-
-
-module.exports = { test, runAutoAlerts };
+module.exports = { test };
