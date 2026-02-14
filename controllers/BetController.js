@@ -376,36 +376,40 @@ async function test(req, res) {
 
   console.log(result_pl);
 
-  for (const m of result_laliga.matches) {
-    // if (!m.alert) continue;
-
-    const message = `
-    <b>🚨 LIVE BET ALERT</b>
-    
-    <b>${m.match}</b>
-    ⏱ Minute: <b>${m.matchMinute}'</b>
-    ⚽ Score: <b>${m.home_team_score}-${m.away_team_score}</b>
-    
-    <b>📊 Head-to-Head (Last 5)</b>
-    • Played: ${m.h2h_last_5_games.played}
-    • ${m.home_team} Wins: ${m.h2h_last_5_games.teamAWins}
-    • ${m.away_team} Wins: ${m.h2h_last_5_games.teamBWins}
-    • Draws: ${m.h2h_last_5_games.draws}
-    • Total Goals: ${m.h2h_last_5_games.totalGoals}
-    • Over 1.5 Goals: ${m.h2h_last_5_games.over2goals ? "✅ YES" : "❌ NO"}
-    
-    <b>💰 Market</b>
-    • Over 0.5 Goals Odds: <b>${m.goals_odd ?? "N/A"}</b>
-    
-    <b>📡 Status</b>
-    • Live: ${m.ismatch_live ? "✅ Yes" : "❌ No"}
-    
-    <b>⚠️ Insight</b>
-    High probability of at least two goals before FT.
-    `;
-
-   await sendTelegramAlert(message);
+  if(Array.isArray(result_laliga.matches)) {
+    for (const m of result_laliga.matches) {
+      // if (!m.alert) continue;
+  
+      const message = `
+      <b>🚨 LIVE BET ALERT</b>
+      
+      <b>${m.match}</b>
+      ⏱ Minute: <b>${m.matchMinute}'</b>
+      ⚽ Score: <b>${m.home_team_score}-${m.away_team_score}</b>
+      
+      <b>📊 Head-to-Head (Last 5)</b>
+      • Played: ${m.h2h_last_5_games.played}
+      • ${m.home_team} Wins: ${m.h2h_last_5_games.teamAWins}
+      • ${m.away_team} Wins: ${m.h2h_last_5_games.teamBWins}
+      • Draws: ${m.h2h_last_5_games.draws}
+      • Total Goals: ${m.h2h_last_5_games.totalGoals}
+      • Over 1.5 Goals: ${m.h2h_last_5_games.over2goals ? "✅ YES" : "❌ NO"}
+      
+      <b>💰 Market</b>
+      • Over 0.5 Goals Odds: <b>${m.goals_odd ?? "N/A"}</b>
+      
+      <b>📡 Status</b>
+      • Live: ${m.ismatch_live ? "✅ Yes" : "❌ No"}
+      
+      <b>⚠️ Insight</b>
+      High probability of at least two goals before FT.
+      `;
+  
+     await sendTelegramAlert(message);
+    }
   }
+
+  if(Array.isArray(result_pl.matches)) {
   for (const m of result_pl.matches) {
     // if (!m.alert) continue;
 
@@ -436,6 +440,7 @@ async function test(req, res) {
 
     await sendTelegramAlert(message);
   }
+}
 
   return res.json({
     laliga: result_laliga,

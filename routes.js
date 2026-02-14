@@ -13,9 +13,7 @@ router.use(bodyParser.urlencoded({ limit: '50mb',extended: true }));
 
 
 
-router.get('/',(req,res)=> {
-    res.send('Backend online now')
-})
+
 
 
 router.get('/football-events', betController.test);
